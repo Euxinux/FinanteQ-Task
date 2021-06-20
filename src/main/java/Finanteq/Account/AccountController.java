@@ -2,8 +2,6 @@ package Finanteq.Account;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.math3.util.Precision;
-import org.apache.tomcat.util.http.parser.HttpParser;
 import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,30 +9,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.sql.Array;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static java.lang.Math.round;
-
 @Component
 @RestController
 public class AccountController {
+
     @Autowired
     AccountRepository aRepository;
-
     @Autowired
     ObjectMapper objectMapper;
-
     @Autowired
     Cantor cantor;
 
+    // Method to check account ballance
     @GetMapping("/account/{id}")
     public ResponseEntity displayUserAccount(@PathVariable("id") int id) throws JsonProcessingException {
         Optional<Account> userAccount = aRepository.findById(id);
@@ -44,28 +35,30 @@ public class AccountController {
             return ResponseEntity.ok(objectMapper.writeValueAsString(userAccount));
     }
 
+    //Sell PLN buy another currency, amount - how many PLN we want sell
     @PutMapping("/sell/PLN/{currency}/{amount}")
     public ResponseEntity sellPLN(@RequestHeader("accountId") int accountId, @PathVariable("amount") double amount,
                                         @PathVariable("currency") String currency) throws JSONException, JsonProcessingException {
         Optional<Account> account = aRepository.findById(accountId);
 
+        //possibly to buy only EUR, USD, GBP
         if (!currencyList.contains(currency))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        // check that user is exist
         if (account.isEmpty())
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        // check account balance
         if (account.get().getPln() < amount)
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
         else{
             Account newValuedAccount;
             newValuedAccount = account.get();
 
-
             switch (currency){
                 case "EUR":
                     double course = cantor.getCourse(EUR);
                     double newValue = account.get().getEur() + ((amount/course)*0.98);
                     newValuedAccount.setEur(newValue);
-
                     break;
                 case "USD":
                     course = cantor.getCourse(USD);
@@ -83,11 +76,12 @@ public class AccountController {
             return ResponseEntity.ok(objectMapper.writeValueAsString(newValuedAccount));
             }
         }
-
+    //Sell another currency, buy PLN, amount - how many currency we want sell
     @PutMapping("/buy/PLN/{currency}/{amount}")
     public ResponseEntity buyPLN(@RequestHeader("accountId") int accountId, @PathVariable("amount") double amount,
                                         @PathVariable("currency") String currency) throws JSONException, JsonProcessingException {
         Optional<Account> account = aRepository.findById(accountId);
+
         if (!currencyList.contains(currency))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         if (account.isEmpty())
@@ -106,7 +100,7 @@ public class AccountController {
                          course = cantor.getCourse(EUR);
                          newValue = account.get().getEur() - amount;
                          newValuedAccount.setEur(newValue);
-                        break;
+                         break;
                     }
                 case "USD":
                     if (amount > account.get().getUsd())
@@ -115,7 +109,7 @@ public class AccountController {
                          course = cantor.getCourse(USD);
                          newValue = account.get().getUsd() - amount;
                          newValuedAccount.setUsd(newValue);
-                        break;
+                         break;
                     }
                 case "GBP":
                     if (amount > account.get().getGbp())
@@ -123,8 +117,8 @@ public class AccountController {
                     else {
                          course = cantor.getCourse(GBP);
                          newValue = account.get().getGbp() - amount;
-                        newValuedAccount.setGbp(newValue);
-                        break;
+                         newValuedAccount.setGbp(newValue);
+                         break;
                     }
             }
                 if (course != 1) {

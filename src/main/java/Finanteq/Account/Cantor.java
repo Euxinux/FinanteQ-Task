@@ -3,7 +3,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -12,7 +11,7 @@ import java.net.URL;
 
 @Component
 public class Cantor {
-
+    //Method allow to get current value any currency from NBP Api
     public double getCourse (String addressURL) throws JSONException {
         StringBuffer stringBuffer = new StringBuffer();
         try {
